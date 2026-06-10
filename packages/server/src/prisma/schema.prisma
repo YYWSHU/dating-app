@@ -47,6 +47,8 @@ model User {
   // P0: Rate limiting
   loginAttempts      Int          @default(0)
   lockedUntil        DateTime?
+  // Admin
+  admin              Boolean      @default(false)
   // P1: Matching
   mbti               String?      // ENUM: INTJ, INFP, etc.
   bigFive            Json?        // {openness, conscientiousness, extraversion, agreeableness, neuroticism}

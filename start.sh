@@ -32,6 +32,12 @@ echo -e "${CYAN}║   💕 遇见 - Dating App Launcher   ║${NC}"
 echo -e "${CYAN}╚════════════════════════════════════╝${NC}"
 echo ""
 
+# 0. 清理旧进程
+echo -e "${YELLOW}🧹 清理旧进程...${NC}"
+kill $(lsof -ti:3001) 2>/dev/null && echo -e "   ✅ 已停止旧后端" || true
+kill $(lsof -ti:5173) 2>/dev/null && echo -e "   ✅ 已停止旧前端" || true
+sleep 1
+
 # 1. 检查 PostgreSQL
 echo -e "${YELLOW}📦 检查数据库...${NC}"
 if pg_isready -q 2>/dev/null; then
