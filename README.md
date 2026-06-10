@@ -27,7 +27,7 @@
 
 ```bash
 # 克隆项目
-git clone <repo-url> dating-app
+git clone https://github.com/YYWSHU/dating-app.git
 cd dating-app
 
 # 一键启动
