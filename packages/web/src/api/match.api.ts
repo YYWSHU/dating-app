@@ -52,3 +52,31 @@ export async function getUserRating(userId: string): Promise<{ average: number |
   const { data } = await apiClient.get(`/ratings/${userId}`);
   return data;
 }
+
+// Likes visibility
+export async function whoLikedMe(): Promise<any[]> {
+  const { data } = await apiClient.get('/likes/received');
+  return data;
+}
+export async function whoILiked(): Promise<any[]> {
+  const { data } = await apiClient.get('/likes/given');
+  return data;
+}
+
+// Recommender (AI)
+export async function getMatchExplanation(targetUserId: string): Promise<{ explanation: string }> {
+  const { data } = await apiClient.post('/recommender/match-explanation', { targetUserId });
+  return data;
+}
+export async function getChatSuggestion(targetUserId: string, context?: string, recentMessages?: any[]): Promise<{ suggestions: string[] }> {
+  const { data } = await apiClient.post('/recommender/chat-suggestion', { targetUserId, context, recentMessages });
+  return data;
+}
+export async function getDailyPicks(): Promise<{ picks: any[] }> {
+  const { data } = await apiClient.get('/recommender/daily-picks');
+  return data;
+}
+export async function embedMe(): Promise<any> {
+  const { data } = await apiClient.post('/recommender/embed-me');
+  return data;
+}

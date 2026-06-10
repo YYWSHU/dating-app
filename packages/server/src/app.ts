@@ -12,6 +12,7 @@ import chatRoutes from './modules/chat/chat.routes.js';
 import locationRoutes from './modules/location/location.routes.js';
 import adminRoutes from './modules/admin/admin.routes.js';
 import questionnaireRoutes from './modules/questionnaire/questionnaire.routes.js';
+import recommenderRoutes from './modules/recommender/recommender.routes.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -41,6 +42,7 @@ export function createApp() {
   app.use('/api/auth', authRoutes);
   app.use('/api', matchRoutes);
   app.use('/api', questionnaireRoutes);
+  app.use('/api', recommenderRoutes);
   app.use('/api', adminRoutes);
   app.use('/api', chatRoutes);
   app.use('/api', locationRoutes);

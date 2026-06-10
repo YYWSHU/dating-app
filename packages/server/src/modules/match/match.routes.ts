@@ -18,4 +18,8 @@ router.delete('/likes/:userId', matchController.passUser);
 // P1: Undo last pass
 router.post('/undo-pass', matchController.undoLastPass);
 
+// Likes visibility
+router.get('/likes/received', matchController.whoLikedMe);
+router.get('/likes/given', matchController.whoILiked);
+
 export default router;

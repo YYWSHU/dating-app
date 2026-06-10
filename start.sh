@@ -21,6 +21,7 @@ cleanup() {
     echo -e "${YELLOW}🛑 正在停止服务...${NC}"
     kill $SERVER_PID 2>/dev/null
     kill $WEB_PID 2>/dev/null
+    kill $RECOMMENDER_PID 2>/dev/null
     echo -e "${GREEN}✅ 服务已停止${NC}"
     exit 0
 }
@@ -59,7 +60,19 @@ if [ ! -d "$PROJECT_DIR/node_modules" ]; then
     echo ""
 fi
 
-# 3. 启动后端
+# 3. 启动推荐服务 (Ollama + ChromaDB)
+echo -e "${YELLOW}🧠 启动 AI 推荐服务...${NC}"
+cd "$PROJECT_DIR/packages/recommender"
+python3 service.py > /tmp/recommender.log 2>&1 &
+RECOMMENDER_PID=$!
+sleep 2
+if kill -0 $RECOMMENDER_PID 2>/dev/null; then
+    echo -e "${GREEN}   ✅ 推荐服务已启动: http://localhost:5002${NC}"
+else
+    echo -e "${YELLOW}   ⚠️  推荐服务启动失败，跳过（不影响核心功能）${NC}"
+fi
+
+# 4. 启动后端
 echo -e "${YELLOW}🚀 启动后端服务...${NC}"
 cd "$SERVER_DIR"
 npx tsx --env-file=.env src/index.ts &
@@ -73,7 +86,7 @@ else
     exit 1
 fi
 
-# 4. 启动前端
+# 5. 启动前端
 echo -e "${YELLOW}🎨 启动前端服务...${NC}"
 cd "$WEB_DIR"
 npx vite --host &

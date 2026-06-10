@@ -275,6 +275,56 @@ export async function undoLastPass(userId: string) {
   return { undoneUserId: lastPass.passedId };
 }
 
+// ===== Likes visibility =====
+
+export async function whoLikedMe(userId: string) {
+  const likes = await prisma.like.findMany({
+    where: { likedId: userId },
+    include: {
+      liker: {
+        select: { id: true, nickname: true, gender: true, birthDate: true, bio: true, tags: true, avatarUrl: true, mbti: true, photos: { take: 1, orderBy: { order: 'asc' } } },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  // Check which ones are already matched
+  const matches = await prisma.match.findMany({
+    where: { OR: [{ user1Id: userId }, { user2Id: userId }] },
+    select: { user1Id: true, user2Id: true },
+  });
+  const matchedIds = new Set(matches.flatMap((m) => [m.user1Id, m.user2Id]));
+
+  const now = new Date();
+  return likes.map((l) => ({
+    ...l.liker,
+    age: Math.floor((now.getTime() - new Date(l.liker.birthDate).getTime()) / (365.25 * 86400000)),
+    likeType: l.type,
+    likedAt: l.createdAt,
+    isMatched: matchedIds.has(l.liker.id),
+  }));
+}
+
+export async function whoILiked(userId: string) {
+  const likes = await prisma.like.findMany({
+    where: { likerId: userId },
+    include: {
+      liked: {
+        select: { id: true, nickname: true, gender: true, birthDate: true, bio: true, tags: true, avatarUrl: true, mbti: true, photos: { take: 1, orderBy: { order: 'asc' } } },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  const now = new Date();
+  return likes.map((l) => ({
+    ...l.liked,
+    age: Math.floor((now.getTime() - new Date(l.liked.birthDate).getTime()) / (365.25 * 86400000)),
+    likeType: l.type,
+    likedAt: l.createdAt,
+  }));
+}
+
 // ===== Matches =====
 
 export async function getMatches(userId: string) {
@@ -292,10 +342,22 @@ export async function getMatches(userId: string) {
     orderBy: { lastMessageAt: { sort: 'desc', nulls: 'last' } },
   });
 
-  return matches.map((m) => {
+  const mapped = await Promise.all(matches.map(async (m) => {
     const isUser1 = m.user1.id === userId;
     const matchedUser = isUser1 ? m.user2 : m.user1;
     const lastMessage = m.messages[0] || null;
+
+    // Check if this match came from a superlike
+    const superLike = await prisma.like.findFirst({
+      where: {
+        OR: [
+          { likerId: matchedUser.id, likedId: userId, type: 'superlike' },
+          { likerId: userId, likedId: matchedUser.id, type: 'superlike' },
+        ],
+      },
+      select: { type: true, likerId: true },
+    });
+
     return {
       matchId: m.id,
       user: matchedUser,
@@ -305,8 +367,19 @@ export async function getMatches(userId: string) {
       } : null,
       matchDate: m.matchDate,
       createdAt: m.createdAt,
+      isSuperLike: !!superLike,
+      superLikedByOther: superLike?.likerId !== userId,
     };
+  }));
+
+  // Sort: superlikes first, then by lastMessageAt
+  mapped.sort((a, b) => {
+    if (a.isSuperLike && !b.isSuperLike) return -1;
+    if (!a.isSuperLike && b.isSuperLike) return 1;
+    return 0; // preserve original order otherwise
   });
+
+  return mapped;
 }
 
 export async function getMatchDetail(userId: string, matchId: string) {

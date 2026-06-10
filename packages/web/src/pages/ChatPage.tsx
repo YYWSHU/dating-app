@@ -79,7 +79,22 @@ export function ChatPage() {
           <button onClick={() => navigate(-1)} className="p-1"><ArrowLeft size={22} className="text-gray-700" /></button>
           <button onClick={() => matchedUser && navigate(`/profile/${matchedUser.id}`)} className="flex items-center gap-2 flex-1">
             <Avatar src={matchedUser?.avatarUrl || matchedUser?.photos?.[0]?.url} size="sm" />
-            <span className="font-semibold text-gray-900 text-sm">{matchedUser?.nickname || '...'}</span>
+            <div className="text-left">
+              <span className="font-semibold text-gray-900 text-sm">{matchedUser?.nickname || '...'}</span>
+              <p className="text-[10px] text-gray-400">点击查看完整档案</p>
+            </div>
+          </button>
+          <button onClick={async () => {
+            try {
+              const { getChatSuggestion } = await import('../api/match.api');
+              const res = await getChatSuggestion(matchedUser?.id || '', 'first_message');
+              if (res?.suggestions?.length) {
+                setInput(res.suggestions[0]);
+                toast('info', 'AI 已生成建议消息');
+              }
+            } catch {}
+          }} className="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center" title="AI聊天建议">
+            <Sparkles size={14} className="text-purple-500" />
           </button>
         </div>
         {typingUser && <div className="px-4 pb-2 text-xs text-pink-500 italic">{typingUser} 正在输入...</div>}

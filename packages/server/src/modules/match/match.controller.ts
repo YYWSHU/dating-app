@@ -51,3 +51,17 @@ export async function getMatchDetail(req: AuthRequest, res: Response, next: Next
     res.json(match);
   } catch (err) { next(err); }
 }
+
+export async function whoLikedMe(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const users = await matchService.whoLikedMe(req.userId!);
+    res.json(users);
+  } catch (err) { next(err); }
+}
+
+export async function whoILiked(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const users = await matchService.whoILiked(req.userId!);
+    res.json(users);
+  } catch (err) { next(err); }
+}

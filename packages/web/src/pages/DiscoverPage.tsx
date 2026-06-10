@@ -23,31 +23,32 @@ export function DiscoverPage() {
   const handleLike = async () => {
     if (!currentUser || animating) return;
     setAnimating('like');
-    setTimeout(async () => {
-      const isMatch = await likeUser(currentUser.id);
-      if (isMatch) { setMatchedUser(currentUser); setShowMatch(true); }
-      setAnimating(null); setCurrentIndex((i) => i + 1);
-    }, 300);
+    // Fire API immediately, advance after animation
+    const user = currentUser;
+    const isMatch = await likeUser(user.id);
+    setAnimating(null);
+    setCurrentIndex((i) => i + 1);
+    if (isMatch) { setMatchedUser(user); setShowMatch(true); }
   };
 
   const handleSuperLike = async () => {
     if (!currentUser || animating || superLikesLeft <= 0) return;
     setAnimating('superlike');
     setSuperLikesLeft((c) => c - 1);
-    setTimeout(async () => {
-      const isMatch = await superLikeUser(currentUser.id);
-      if (isMatch) { setMatchedUser(currentUser); setShowMatch(true); }
-      setAnimating(null); setCurrentIndex((i) => i + 1);
-    }, 400);
+    const user = currentUser;
+    const isMatch = await superLikeUser(user.id);
+    setAnimating(null);
+    setCurrentIndex((i) => i + 1);
+    if (isMatch) { setMatchedUser(user); setShowMatch(true); }
   };
 
   const handlePass = async () => {
     if (!currentUser || animating) return;
     setAnimating('pass');
-    setTimeout(async () => {
-      await passUser(currentUser.id);
-      setAnimating(null); setCurrentIndex((i) => i + 1);
-    }, 300);
+    const user = currentUser;
+    await passUser(user.id);
+    setAnimating(null);
+    setCurrentIndex((i) => i + 1);
   };
 
   const handleUndo = async () => {
