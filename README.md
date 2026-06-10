@@ -60,15 +60,45 @@ cd packages/web
 npm run dev            # http://localhost:5173
 ```
 
-### 测试账号
+### 测试账号（密码统一: `123456`）
 
-| 邮箱 | 密码 | 昵称 | 性别 | 偏好 |
-|------|------|------|------|------|
-| alice@test.com | 123456 | Alice | 女 | 男 |
-| bob@test.com | 123456 | Bob | 男 | 女 |
-| carol@test.com | 123456 | Carol | 女 | 男 |
-| dave@test.com | 123456 | Dave | 男 | 女 |
-| eve@test.com | 123456 | Eve | 女 | 不限 |
+| 邮箱 | 昵称 | 性别 | 偏好 | 城市 | 备注 |
+|------|------|------|------|------|------|
+| alice@test.com | Alice | 女 | 男 | 北京 | 👑 **管理员** · 已匹配 Bob, Mike |
+| bob@test.com | Bob | 男 | 女 | 北京 | 已匹配 Alice |
+| carol@test.com | Carol | 女 | 男 | 北京 | 已匹配 Ryan |
+| dave@test.com | Dave | 男 | 女 | 北京 | 已匹配 Eve |
+| eve@test.com | Eve | 女 | 不限 | 北京 | 已匹配 Dave, Zara |
+| luna@test.com | Luna 月亮 | 女 | 男 | 北京 | 互联网PM · 已 like Jason, Oscar |
+| mike@test.com | Mike 小麦 | 男 | 女 | 北京 | VC投资人 · 已匹配 Alice |
+| sophie@test.com | Sophie 苏菲 | 女 | 男 | 北京 | 律师 |
+| ryan@test.com | Ryan | 男 | 女 | 北京 | 连续创业者 · 已匹配 Carol |
+| emma@test.com | Emma 小雅 | 女 | 男 | 北京 | 清华CS |
+| jason@test.com | Jason 杰森 | 男 | 女 | 北京 | 中科院博士 |
+| nina@test.com | Nina 妮娜 | 女 | 不限 | 北京 | 北大医学 |
+| kevin@test.com | Kevin | 男 | 女 | 北京 | 汽车工程师 |
+| mia@test.com | Mia 米娅 | 女 | 男 | 北京 | 电商运营 |
+| oscar@test.com | Oscar | 男 | 男 | 北京 | 建筑师 |
+| zara@test.com | Zara 扎扎 | 女 | 女 | 北京 | UI设计师 · 已匹配 Eve |
+| grace@test.com | Grace 格蕾丝 | 女 | 男 | 北京 | 画廊策展人 |
+| frank@test.com | Frank | 男 | 女 | 北京 | 外科医生 |
+| helen@test.com | Helen 海伦 | 女 | 男 | 北京 | 财务顾问 |
+| quinn@test.com | Quinn | 其他 | 不限 | 北京 | 独立音乐人 |
+| willow@test.com | Willow 柳 | 女 | 女 | 北京 | 瑜伽教练 |
+| peter@test.com | Peter | 男 | 男 | 北京 | 投行 |
+| lucas@test.com | Lucas 路卡斯 | 男 | 女 | 上海 | 广告创意 |
+| ivy@test.com | Ivy 常春藤 | 女 | 男 | 上海 | 同声传译 |
+| tom@test.com | Tom 汤姆 | 男 | 不限 | 上海 | 自由摄影师 |
+| ava@test.com | Ava 艾娃 | 女 | 男 | 深圳 | 腾讯PM |
+| derek@test.com | Derek | 男 | 女 | 深圳 | 硬件工程师 |
+| chloe@test.com | Chloe 克洛伊 | 女 | 男 | 杭州 | 阿里设计师 |
+| eric@test.com | Eric | 男 | 女 | 杭州 | 网易策划 |
+| fiona@test.com | Fiona 小菲 | 女 | 男 | 成都 | 咖啡馆老板 |
+| hank@test.com | Hank | 男 | 女 | 成都 | 电竞教练 |
+| iris@test.com | Iris 鸢尾 | 女 | 男 | 广州 | 电台主播 |
+| nick@test.com | Nick | 男 | 女 | 广州 | 金融海归 |
+
+> **管理员后台**: 用 alice@test.com 登录后，点底部"我"→"管理后台"，或直接访问 `/admin`
 
 ---
 
