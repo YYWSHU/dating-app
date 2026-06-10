@@ -1,6 +1,7 @@
 import { Response, NextFunction } from 'express';
 import { AuthRequest } from '../../middleware/auth.js';
 import * as userService from './user.service.js';
+import * as authService from '../auth/auth.service.js';
 
 export async function getMe(
   req: AuthRequest,
@@ -79,6 +80,20 @@ export async function getUserById(
   try {
     const user = await userService.getUserById(req.userId!, req.params.id);
     res.json(user);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function logout(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { refreshToken } = req.body;
+    await authService.logout(req.userId!, refreshToken);
+    res.json({ message: 'Logged out successfully' });
   } catch (err) {
     next(err);
   }

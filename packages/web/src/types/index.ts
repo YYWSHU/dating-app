@@ -14,6 +14,12 @@ export interface User {
   maxDistance: number;
   minAge: number;
   maxAge: number;
+  emailVerified: boolean;
+  mbti: string | null;
+  bigFive: { openness: number; conscientiousness: number; extraversion: number; agreeableness: number; neuroticism: number } | null;
+  campusEmail: boolean;
+  isVip: boolean;
+  maxAge: number;
   isVerified: boolean;
   photos: Photo[];
   createdAt: string;

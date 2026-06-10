@@ -2,35 +2,118 @@ import { prisma } from '../../lib/prisma.js';
 import { AppError } from '../../middleware/error.js';
 import { Prisma } from '@prisma/client';
 
+// ===== P1: Matching Algorithm =====
+
+// MBTI compatibility matrix (0-100 scale)
+const MBTI_MATRIX: Record<string, Record<string, number>> = {
+  INTJ: { ENFP: 95, ENTP: 90, INFJ: 85, INTP: 80, ENTJ: 75, ENFJ: 70, ISTJ: 65, ESTJ: 60, INFP: 55, ISFJ: 50, ESFJ: 45, ESTP: 40, ISTP: 35, ISFP: 30, ESFP: 25 },
+  INTP: { ENTJ: 95, ENTP: 90, INFJ: 85, INTJ: 80, ENFJ: 75, ENFP: 70, ISTJ: 65, ESTJ: 60, INFP: 55, ISFJ: 50, ESFJ: 45, ESTP: 40, ISTP: 35, ISFP: 30, ESFP: 25 },
+  INFJ: { ENTP: 95, ENFP: 90, INTJ: 85, INFP: 80, ENTJ: 75, ENFJ: 70, ISTJ: 65, ESTJ: 60, INTP: 55, ISFJ: 50, ESFJ: 45, ESTP: 40, ISTP: 35, ISFP: 30, ESFP: 25 },
+  INFP: { ENFJ: 95, ENFP: 90, INFJ: 85, INTJ: 80, ENTJ: 75, ENTP: 70, ISTJ: 65, ESTJ: 60, INTP: 55, ISFJ: 50, ESFJ: 45, ESTP: 40, ISTP: 35, ISFP: 30, ESFP: 25 },
+  ENTP: { INFJ: 95, INTJ: 90, INTP: 85, ENFP: 80, ENTJ: 75, ENFJ: 70, ISTJ: 65, ESTJ: 60, INFP: 55, ISFJ: 50, ESFJ: 45, ESTP: 40, ISTP: 35, ISFP: 30, ESFP: 25 },
+  ENFP: { INTJ: 95, INFJ: 90, INFP: 85, ENTP: 80, ENTJ: 75, ENFJ: 70, ISTJ: 65, ESTJ: 60, INTP: 55, ISFJ: 50, ESFJ: 45, ESTP: 40, ISTP: 35, ISFP: 30, ESFP: 25 },
+  ENTJ: { INTP: 95, INFP: 90, INTJ: 85, ENTP: 80, INFJ: 75, ENFJ: 70, ISTJ: 65, ESTJ: 60, ENFP: 55, ISFJ: 50, ESFJ: 45, ESTP: 40, ISTP: 35, ISFP: 30, ESFP: 25 },
+  ENFJ: { INFP: 95, INFJ: 90, ENFP: 85, ENTJ: 80, INTJ: 75, ENTP: 70, ISTJ: 65, ESTJ: 60, INTP: 55, ISFJ: 50, ESFJ: 45, ESTP: 40, ISTP: 35, ISFP: 30, ESFP: 25 },
+  ISTJ: { ESFP: 85, ESTP: 80, ISFJ: 75, INTJ: 70, INTP: 65, INFJ: 60, ISTP: 55, INFP: 50, ESTJ: 45, ENTP: 40, ENFP: 35, ENTJ: 30, ENFJ: 25, ESFJ: 20, ISFP: 15 },
+  ISFJ: { ESTP: 85, ESFP: 80, ISTJ: 75, INFJ: 70, INTJ: 65, INFP: 60, ISFP: 55, INTP: 50, ESTJ: 45, ENFP: 40, ENTP: 35, ENTJ: 30, ENFJ: 25, ESFJ: 20, ISTP: 15 },
+  ESTJ: { ISFP: 85, ISTP: 80, ESFJ: 75, INTJ: 70, INTP: 65, INFJ: 60, ESTP: 55, INFP: 50, ISTJ: 45, ENTP: 40, ENFP: 35, ENTJ: 30, ENFJ: 25, ESFP: 20, ISFJ: 15 },
+  ESFJ: { ISTP: 85, ISFP: 80, ESTJ: 75, INFJ: 70, INTJ: 65, INFP: 60, ESFP: 55, INTP: 50, ISFJ: 45, ENFP: 40, ENTP: 35, ENTJ: 30, ENFJ: 25, ESTP: 20, ISTJ: 15 },
+  ISTP: { ESFJ: 85, ESTJ: 80, ISFP: 75, INTP: 70, INTJ: 65, INFJ: 60, ISTJ: 55, INFP: 50, ESTP: 45, ENFJ: 40, ENFP: 35, ENTJ: 30, ENTP: 25, ESFP: 20, ISFJ: 15 },
+  ISFP: { ESTJ: 85, ESFJ: 80, ISTP: 75, INFP: 70, INTJ: 65, INFJ: 60, ISFJ: 55, INTP: 50, ESFP: 45, ENFJ: 40, ENFP: 35, ENTJ: 30, ENTP: 25, ESTP: 20, ISTJ: 15 },
+  ESTP: { ISFJ: 85, ISTJ: 80, ESFP: 75, ENTP: 70, INTJ: 65, INFJ: 60, ESTJ: 55, INTP: 50, ISTP: 45, ENFJ: 40, ENFP: 35, ENTJ: 30, INFP: 25, ESFJ: 20, ISFP: 15 },
+  ESFP: { ISTJ: 85, ISFJ: 80, ESTP: 75, ENFP: 70, INTJ: 65, INFJ: 60, ESFJ: 55, INTP: 50, ISFP: 45, ENFJ: 40, INFP: 35, ENTJ: 30, ENTP: 25, ESTJ: 20, ISTP: 15 },
+};
+
+function getMbtiScore(a: string | null, b: string | null): number {
+  if (!a || !b) return 0.5; // neutral if not provided
+  if (a === b) return 0.7;
+  return (MBTI_MATRIX[a]?.[b] || 50) / 100;
+}
+
+// Cosine similarity for Big Five arrays
+function cosineSimilarity(a: number[], b: number[]): number {
+  if (a.length === 0 || b.length === 0) return 0.5;
+  let dot = 0, normA = 0, normB = 0;
+  for (let i = 0; i < a.length; i++) {
+    dot += (a[i] || 0) * (b[i] || 0);
+    normA += (a[i] || 0) ** 2;
+    normB += (b[i] || 0) ** 2;
+  }
+  const denom = Math.sqrt(normA) * Math.sqrt(normB);
+  return denom === 0 ? 0 : dot / denom;
+}
+
+function getBigFiveScore(bigFiveA: any, bigFiveB: any): number {
+  if (!bigFiveA || !bigFiveB) return 0.5;
+  try {
+    const a = typeof bigFiveA === 'string' ? JSON.parse(bigFiveA) : bigFiveA;
+    const b = typeof bigFiveB === 'string' ? JSON.parse(bigFiveB) : bigFiveB;
+    const keys = ['openness', 'conscientiousness', 'extraversion', 'agreeableness', 'neuroticism'];
+    const vecA = keys.map((k) => a[k] ?? a[k.charAt(0).toUpperCase() + k.slice(1)] ?? 0.5);
+    const vecB = keys.map((k) => b[k] ?? b[k.charAt(0).toUpperCase() + k.slice(1)] ?? 0.5);
+    return cosineSimilarity(vecA, vecB);
+  } catch {
+    return 0.5;
+  }
+}
+
+// Jaccard similarity for tags
+function getTagsScore(tagsA: string[], tagsB: string[]): number {
+  if (tagsA.length === 0 || tagsB.length === 0) return 0.5;
+  const setA = new Set(tagsA.map((t) => t.toLowerCase()));
+  const setB = new Set(tagsB.map((t) => t.toLowerCase()));
+  const intersection = new Set([...setA].filter((x) => setB.has(x)));
+  const union = new Set([...setA, ...setB]);
+  return intersection.size / union.size;
+}
+
+// P1: Composite match score
+function getMatchScore(me: any, other: any): number {
+  const mbtiScore = getMbtiScore(me.mbti, other.mbti);
+  const bigFiveScore = getBigFiveScore(me.bigFive, other.bigFive);
+  const tagsScore = getTagsScore(me.tags || [], other.tags || []);
+  // 20% MBTI + 30% Big Five + 50% Tags (more weight on interests)
+  return mbtiScore * 0.2 + bigFiveScore * 0.3 + tagsScore * 0.5;
+}
+
+// ===== Discover =====
+
 export async function discover(userId: string, limit: number = 20) {
   const me = await prisma.user.findUnique({
     where: { id: userId },
     select: {
-      gender: true,
-      interestedIn: true,
-      latitude: true,
-      longitude: true,
-      maxDistance: true,
-      minAge: true,
-      maxAge: true,
+      gender: true, interestedIn: true, latitude: true, longitude: true,
+      maxDistance: true, minAge: true, maxAge: true,
+      mbti: true, bigFive: true, tags: true,
     },
   });
-
   if (!me) throw new AppError(404, 'User not found');
 
-  // Get IDs of users already liked or passed
+  // P6: Get blocked users (both directions)
+  const blockedIds = await prisma.block.findMany({
+    where: { blockerId: userId },
+    select: { blockedId: true },
+  });
+  const blockedMeIds = await prisma.block.findMany({
+    where: { blockedId: userId },
+    select: { blockerId: true },
+  });
+
   const interactedIds = await prisma.like.findMany({
     where: { likerId: userId },
     select: { likedId: true },
   });
-  const excludeIds = [userId, ...interactedIds.map((l) => l.likedId)];
+  const excludeIds = [
+    userId,
+    ...interactedIds.map((l) => l.likedId),
+    ...blockedIds.map((b) => b.blockedId),
+    ...blockedMeIds.map((b) => b.blockerId),
+  ];
 
-  // Calculate age range
   const now = new Date();
   const maxBirthDate = new Date(now.getFullYear() - me.minAge, now.getMonth(), now.getDate());
   const minBirthDate = new Date(now.getFullYear() - me.maxAge, now.getMonth(), now.getDate());
 
-  // Determine which genders to show
   let interestedGenders: string[];
   if (me.interestedIn === 'both') {
     interestedGenders = ['male', 'female'];
@@ -38,91 +121,111 @@ export async function discover(userId: string, limit: number = 20) {
     interestedGenders = [me.interestedIn];
   }
 
-  // Build where clause
   const where: Prisma.UserWhereInput = {
     id: { notIn: excludeIds },
     gender: { in: interestedGenders },
-    birthDate: {
-      gte: minBirthDate,
-      lte: maxBirthDate,
-    },
+    birthDate: { gte: minBirthDate, lte: maxBirthDate },
   };
-
-  // If user has location, sort by distance (simple approach - sort by lat/lng proximity)
-  let orderBy: Prisma.UserOrderByWithRelationInput[] = [];
-
-  if (me.latitude && me.longitude) {
-    // Simple approximation: sort by absolute difference in coordinates
-    // For production, use PostGIS ST_Distance with a raw query
-    orderBy = [{ createdAt: 'desc' }];
-  } else {
-    orderBy = [{ createdAt: 'desc' }];
-  }
 
   const users = await prisma.user.findMany({
     where,
-    orderBy,
-    take: limit,
+    take: limit * 3, // fetch more for re-scoring
     select: {
-      id: true,
-      nickname: true,
-      gender: true,
-      birthDate: true,
-      bio: true,
-      tags: true,
-      avatarUrl: true,
-      latitude: me.latitude ? true : false,
-      longitude: me.longitude ? true : false,
-      photos: {
-        take: 1,
-        orderBy: { order: 'asc' },
-      },
+      id: true, nickname: true, gender: true, birthDate: true,
+      bio: true, tags: true, avatarUrl: true, mbti: true, bigFive: true,
+      latitude: true, longitude: true,
+      photos: { take: 1, orderBy: { order: 'asc' } },
     },
   });
 
-  return users.map((u) => ({
+  // P1: Score, sort, and limit
+  const now2 = new Date();
+  const scored = users.map((u) => ({
     ...u,
-    age: Math.floor((now.getTime() - new Date(u.birthDate).getTime()) / (365.25 * 24 * 60 * 60 * 1000)),
+    age: Math.floor((now2.getTime() - new Date(u.birthDate).getTime()) / (365.25 * 24 * 60 * 60 * 1000)),
+    matchScore: getMatchScore(me, u),
   }));
+
+  scored.sort((a, b) => b.matchScore - a.matchScore);
+  return scored.slice(0, limit);
 }
 
-export async function likeUser(likerId: string, likedId: string) {
-  if (likerId === likedId) {
-    throw new AppError(400, 'Cannot like yourself');
-  }
+// ===== Like / Super Like =====
 
-  // Check if target exists
+export async function likeUser(likerId: string, likedId: string, type: 'like' | 'superlike' = 'like') {
+  if (likerId === likedId) throw new AppError(400, 'Cannot like yourself');
+
   const target = await prisma.user.findUnique({
-    where: { id: likedId },
-    select: { id: true },
+    where: { id: likedId }, select: { id: true },
   });
   if (!target) throw new AppError(404, 'User not found');
 
-  // Create the like
+  // P1: Daily quota check
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const me = await prisma.user.findUnique({
+    where: { id: likerId },
+    select: { dailyLikeCount: true, dailyLikeDate: true, dailySuperLikeCount: true, dailySuperLikeDate: true, isVip: true },
+  });
+
+  const dailyLikeMax = me?.isVip ? 999 : 20;
+  const dailySuperLikeMax = me?.isVip ? 999 : 3;
+
+  if (type === 'like') {
+    if (me?.dailyLikeDate && new Date(me.dailyLikeDate) >= today && (me.dailyLikeCount || 0) >= dailyLikeMax) {
+      throw new AppError(429, `Daily like limit (${dailyLikeMax}) reached. Upgrade to VIP for unlimited likes!`);
+    }
+  } else {
+    if (me?.dailySuperLikeDate && new Date(me.dailySuperLikeDate) >= today && (me.dailySuperLikeCount || 0) >= dailySuperLikeMax) {
+      throw new AppError(429, `Daily super like limit (${dailySuperLikeMax}) reached.`);
+    }
+  }
+
+  // Create like
   let isMatch = false;
   try {
     await prisma.like.create({
-      data: { likerId, likedId },
+      data: { likerId, likedId, type },
     });
   } catch (err: any) {
-    if (err.code === 'P2002') {
-      throw new AppError(409, 'Already liked this user');
-    }
+    if (err.code === 'P2002') throw new AppError(409, 'Already liked this user');
     throw err;
   }
 
-  // Check if the other user also liked me (mutual match)
-  const reciprocalLike = await prisma.like.findUnique({
-    where: {
-      likerId_likedId: {
-        likerId: likedId,
-        likedId: likerId,
+  // Update daily count
+  if (type === 'like') {
+    await prisma.user.upsert({
+      where: { id: likerId },
+      update: {
+        dailyLikeCount: me?.dailyLikeDate && new Date(me.dailyLikeDate) >= today ? (me.dailyLikeCount || 0) + 1 : 1,
+        dailyLikeDate: today,
       },
-    },
+      create: { id: likerId } as any,
+    });
+    // Actually just update:
+    await prisma.user.update({
+      where: { id: likerId },
+      data: {
+        dailyLikeCount: me?.dailyLikeDate && new Date(me.dailyLikeDate) >= today ? (me.dailyLikeCount || 0) + 1 : 1,
+        dailyLikeDate: today,
+      },
+    });
+  } else {
+    await prisma.user.update({
+      where: { id: likerId },
+      data: {
+        dailySuperLikeCount: me?.dailySuperLikeDate && new Date(me.dailySuperLikeDate) >= today ? (me.dailySuperLikeCount || 0) + 1 : 1,
+        dailySuperLikeDate: today,
+      },
+    });
+  }
+
+  // Check reciprocal
+  const reciprocalLike = await prisma.like.findUnique({
+    where: { likerId_likedId: { likerId: likedId, likedId: likerId } },
   });
 
   if (reciprocalLike) {
-    // Create a match - ensure user1Id < user2Id for consistency
     const [user1Id, user2Id] = [likerId, likedId].sort();
     try {
       await prisma.match.create({
@@ -134,51 +237,45 @@ export async function likeUser(likerId: string, likedId: string) {
     isMatch = true;
   }
 
+  // P1: Remove from pass records if exists (undo-pass scenario)
+  await prisma.passRecord.deleteMany({ where: { passerId: likerId, passedId: likedId } });
+
   return { isMatch };
 }
 
+// ===== Pass / Undo =====
+
 export async function passUser(likerId: string, likedId: string) {
-  // Remove the like if it exists
-  await prisma.like.deleteMany({
-    where: { likerId, likedId },
-  });
+  await prisma.like.deleteMany({ where: { likerId, likedId } });
+  // Record pass for potential undo
+  try {
+    await prisma.passRecord.create({ data: { passerId: likerId, passedId: likedId } });
+  } catch { /* already passed */ }
 }
+
+export async function undoLastPass(userId: string) {
+  const lastPass = await prisma.passRecord.findFirst({
+    where: { passerId: userId },
+    orderBy: { createdAt: 'desc' },
+  });
+  if (!lastPass) throw new AppError(404, 'No pass to undo');
+  await prisma.passRecord.delete({ where: { id: lastPass.id } });
+  return { undoneUserId: lastPass.passedId };
+}
+
+// ===== Matches =====
 
 export async function getMatches(userId: string) {
   const matches = await prisma.match.findMany({
-    where: {
-      OR: [
-        { user1Id: userId },
-        { user2Id: userId },
-      ],
-    },
+    where: { OR: [{ user1Id: userId }, { user2Id: userId }] },
     include: {
       user1: {
-        select: {
-          id: true,
-          nickname: true,
-          avatarUrl: true,
-          photos: { take: 1, orderBy: { order: 'asc' } },
-        },
+        select: { id: true, nickname: true, avatarUrl: true, photos: { take: 1, orderBy: { order: 'asc' } } },
       },
       user2: {
-        select: {
-          id: true,
-          nickname: true,
-          avatarUrl: true,
-          photos: { take: 1, orderBy: { order: 'asc' } },
-        },
+        select: { id: true, nickname: true, avatarUrl: true, photos: { take: 1, orderBy: { order: 'asc' } } },
       },
-      messages: {
-        take: 1,
-        orderBy: { createdAt: 'desc' },
-        select: {
-          content: true,
-          createdAt: true,
-          isRead: true,
-          senderId: true,
-        },
-      },
+      messages: { take: 1, orderBy: { createdAt: 'desc' }, select: { content: true, createdAt: true, isRead: true, senderId: true } },
     },
     orderBy: { lastMessageAt: { sort: 'desc', nulls: 'last' } },
   });
@@ -187,18 +284,14 @@ export async function getMatches(userId: string) {
     const isUser1 = m.user1.id === userId;
     const matchedUser = isUser1 ? m.user2 : m.user1;
     const lastMessage = m.messages[0] || null;
-
     return {
       matchId: m.id,
       user: matchedUser,
-      lastMessage: lastMessage
-        ? {
-            content: lastMessage.content,
-            createdAt: lastMessage.createdAt,
-            isRead: lastMessage.isRead,
-            isMine: lastMessage.senderId === userId,
-          }
-        : null,
+      lastMessage: lastMessage ? {
+        content: lastMessage.content, createdAt: lastMessage.createdAt,
+        isRead: lastMessage.isRead, isMine: lastMessage.senderId === userId,
+      } : null,
+      matchDate: m.matchDate,
       createdAt: m.createdAt,
     };
   });
@@ -208,24 +301,12 @@ export async function getMatchDetail(userId: string, matchId: string) {
   const match = await prisma.match.findUnique({
     where: { id: matchId },
     include: {
-      user1: {
-        select: { id: true, nickname: true, avatarUrl: true },
-      },
-      user2: {
-        select: { id: true, nickname: true, avatarUrl: true },
-      },
+      user1: { select: { id: true, nickname: true, avatarUrl: true } },
+      user2: { select: { id: true, nickname: true, avatarUrl: true } },
     },
   });
-
   if (!match) throw new AppError(404, 'Match not found');
-  if (match.user1Id !== userId && match.user2Id !== userId) {
-    throw new AppError(403, 'Not authorized');
-  }
-
+  if (match.user1Id !== userId && match.user2Id !== userId) throw new AppError(403, 'Not authorized');
   const matchedUser = match.user1Id === userId ? match.user2 : match.user1;
-  return {
-    matchId: match.id,
-    user: matchedUser,
-    createdAt: match.createdAt,
-  };
+  return { matchId: match.id, user: matchedUser, matchDate: match.matchDate, createdAt: match.createdAt };
 }

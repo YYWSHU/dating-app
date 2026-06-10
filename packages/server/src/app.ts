@@ -4,6 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { env } from './config/env.js';
 import { errorHandler } from './middleware/error.js';
+import { apiLimiter } from './lib/rate-limiter.js';
 import authRoutes from './modules/auth/auth.routes.js';
 import userRoutes from './modules/user/user.routes.js';
 import matchRoutes from './modules/match/match.routes.js';
@@ -14,6 +15,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export function createApp() {
   const app = express();
+
+  // Global rate limit
+  app.use('/api', apiLimiter);
 
   // Middleware
   app.use(cors({
@@ -26,12 +30,12 @@ export function createApp() {
   // Serve uploaded files
   app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
-  // Health check
+  // Health check (no rate limit)
   app.get('/api/health', (_req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
   });
 
-  // Routes - order matters: more specific before generic
+  // Routes - order matters: specific before generic
   app.use('/api/auth', authRoutes);
   app.use('/api', matchRoutes);
   app.use('/api', chatRoutes);

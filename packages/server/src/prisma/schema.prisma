@@ -19,43 +19,77 @@ enum InterestedIn {
   both
 }
 
-model User {
-  id           String       @id @default(uuid())
-  email        String       @unique
-  password     String
-  nickname     String
-  gender       Gender
-  interestedIn InterestedIn
-  birthDate    DateTime
-  bio          String?      @db.Text
-  tags         String[]
-  avatarUrl    String?
-  latitude     Float?
-  longitude    Float?
-  maxDistance  Int          @default(50)
-  minAge       Int          @default(18)
-  maxAge       Int          @default(60)
-  isVerified   Boolean      @default(false)
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
+enum LikeType {
+  like
+  superlike
+}
 
-  photos         Photo[]
-  givenLikes     Like[]       @relation("Liker")
-  receivedLikes  Like[]       @relation("Liked")
-  sentMessages   Message[]    @relation("Sender")
-  matchesAsUser1 Match[]      @relation("User1")
-  matchesAsUser2 Match[]      @relation("User2")
+model User {
+  id                 String       @id @default(uuid())
+  email              String       @unique
+  password           String
+  nickname           String
+  gender             Gender
+  interestedIn       InterestedIn
+  birthDate          DateTime
+  bio                String?      @db.Text
+  tags               String[]
+  avatarUrl          String?
+  latitude           Float?
+  longitude          Float?
+  maxDistance        Int          @default(50)
+  minAge             Int          @default(18)
+  maxAge             Int          @default(60)
+  // P0: Email verification
+  emailVerified      Boolean      @default(false)
+  emailVerifyCode    String?
+  emailVerifyExpires DateTime?
+  // P0: Rate limiting
+  loginAttempts      Int          @default(0)
+  lockedUntil        DateTime?
+  // P1: Matching
+  mbti               String?      // ENUM: INTJ, INFP, etc.
+  bigFive            Json?        // {openness, conscientiousness, extraversion, agreeableness, neuroticism}
+  // P1: Quota
+  dailyLikeCount     Int          @default(0)
+  dailyLikeDate      DateTime?
+  dailySuperLikeCount Int         @default(0)
+  dailySuperLikeDate DateTime?
+  // P6: Campus
+  campusEmail        Boolean      @default(false)
+  // P8: VIP
+  isVip              Boolean      @default(false)
+  vipExpiresAt       DateTime?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  photos            Photo[]
+  givenLikes        Like[]        @relation("Liker")
+  receivedLikes     Like[]        @relation("Liked")
+  sentMessages      Message[]     @relation("Sender")
+  matchesAsUser1    Match[]       @relation("User1")
+  matchesAsUser2    Match[]       @relation("User2")
+  // P6
+  reports           Report[]      @relation("Reporter")
+  reportedIn        Report[]      @relation("Reported")
+  blocks            Block[]       @relation("Blocker")
+  blockedBy         Block[]       @relation("Blocked")
+  // P7
+  userRatings       UserRating[]  @relation("Rater")
+  receivedRatings   UserRating[]  @relation("RatedUser")
 
   @@index([latitude, longitude])
 }
 
 model Photo {
-  id        String   @id @default(uuid())
-  url       String
-  order     Int      @default(0)
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
+  id         String   @id @default(uuid())
+  url        String
+  order      Int      @default(0)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // P0: moderation
+  isApproved Boolean  @default(true) // auto-approve, set false for manual review
+  createdAt  DateTime @default(now())
 
   @@index([userId])
 }
@@ -66,21 +100,34 @@ model Like {
   likedId   String
   liker     User     @relation("Liker", fields: [likerId], references: [id], onDelete: Cascade)
   liked     User     @relation("Liked", fields: [likedId], references: [id], onDelete: Cascade)
+  type      LikeType @default(like)
   createdAt DateTime @default(now())
 
   @@unique([likerId, likedId])
   @@index([likedId])
 }
 
-model Match {
+// P1: records passes so they can be undone
+model PassRecord {
   id        String   @id @default(uuid())
-  user1Id   String
-  user2Id   String
-  user1     User     @relation("User1", fields: [user1Id], references: [id], onDelete: Cascade)
-  user2     User     @relation("User2", fields: [user2Id], references: [id], onDelete: Cascade)
+  passerId  String
+  passedId  String
   createdAt DateTime @default(now())
 
+  @@unique([passerId, passedId])
+  @@index([passerId])
+}
+
+model Match {
+  id            String    @id @default(uuid())
+  user1Id       String
+  user2Id       String
+  user1         User      @relation("User1", fields: [user1Id], references: [id], onDelete: Cascade)
+  user2         User      @relation("User2", fields: [user2Id], references: [id], onDelete: Cascade)
+  createdAt     DateTime  @default(now())
   lastMessageAt DateTime?
+  // P5: memorial date
+  matchDate     DateTime  @default(now())
   messages      Message[]
 
   @@unique([user1Id, user2Id])
@@ -96,7 +143,71 @@ model Message {
   senderId  String
   sender    User     @relation("Sender", fields: [senderId], references: [id], onDelete: Cascade)
   isRead    Boolean  @default(false)
+  // P2: message type & recall
+  type      String   @default("text") // text, image, emoji, system
+  imageUrl  String?
+  isRecalled Boolean @default(false)
   createdAt DateTime @default(now())
 
   @@index([matchId, createdAt])
+}
+
+// P0: Refresh token blacklist
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  revoked   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([token])
+  @@index([userId])
+}
+
+// P6: Report system
+model Report {
+  id         String   @id @default(uuid())
+  reporterId String
+  reporter   User     @relation("Reporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  reportedId String
+  reported   User     @relation("Reported", fields: [reportedId], references: [id], onDelete: Cascade)
+  reason     String   // inappropriate, fake, spam, harassment, other
+  detail     String?  @db.Text
+  status     String   @default("pending") // pending, reviewed, resolved
+  createdAt  DateTime @default(now())
+}
+
+// P6: Block system
+model Block {
+  id        String   @id @default(uuid())
+  blockerId String
+  blocker   User     @relation("Blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blockedId String
+  blocked   User     @relation("Blocked", fields: [blockedId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([blockerId, blockedId])
+}
+
+// P7: User ratings
+model UserRating {
+  id         String   @id @default(uuid())
+  raterId    String
+  rater      User     @relation("Rater", fields: [raterId], references: [id], onDelete: Cascade)
+  ratedUserId String
+  ratedUser  User     @relation("RatedUser", fields: [ratedUserId], references: [id], onDelete: Cascade)
+  score      Int      // 1-5
+  comment    String?  @db.Text
+  createdAt  DateTime @default(now())
+
+  @@unique([raterId, ratedUserId])
+}
+
+// P7: AI conversation starters cache
+model ConversationStarter {
+  id        String   @id @default(uuid())
+  matchId   String   @unique
+  starters  String[] // array of 3 suggested openers
+  createdAt DateTime @default(now())
 }

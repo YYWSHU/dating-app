@@ -7,9 +7,12 @@ interface MatchState {
   matches: MatchItem[];
   isLoadingDiscover: boolean;
   isLoadingMatches: boolean;
+  superLikesLeft: number;
   fetchDiscover: (limit?: number) => Promise<void>;
   likeUser: (userId: string) => Promise<boolean>;
+  superLikeUser: (userId: string) => Promise<boolean>;
   passUser: (userId: string) => void;
+  undoLastPass: () => Promise<any>;
   fetchMatches: () => Promise<void>;
 }
 
@@ -18,6 +21,7 @@ export const useMatchStore = create<MatchState>((set, get) => ({
   matches: [],
   isLoadingDiscover: false,
   isLoadingMatches: false,
+  superLikesLeft: 3,
 
   fetchDiscover: async (limit = 20) => {
     set({ isLoadingDiscover: true });
@@ -31,26 +35,34 @@ export const useMatchStore = create<MatchState>((set, get) => ({
 
   likeUser: async (userId) => {
     const result = await matchApi.likeUser(userId);
-    // Remove from discover list
     set((state) => ({
       discoverUsers: state.discoverUsers.filter((u) => u.id !== userId),
     }));
-    // If matched, refresh matches
-    if (result.isMatch) {
-      get().fetchMatches();
-    }
+    if (result.isMatch) get().fetchMatches();
+    return result.isMatch;
+  },
+
+  superLikeUser: async (userId) => {
+    const result = await matchApi.superLikeUser(userId);
+    set((state) => ({
+      discoverUsers: state.discoverUsers.filter((u) => u.id !== userId),
+    }));
+    if (result.isMatch) get().fetchMatches();
     return result.isMatch;
   },
 
   passUser: async (userId) => {
-    try {
-      await matchApi.passUser(userId);
-    } catch {
-      // Ignore pass errors (user might not have been liked)
-    }
+    try { await matchApi.passUser(userId); } catch { /* ignore */ }
     set((state) => ({
       discoverUsers: state.discoverUsers.filter((u) => u.id !== userId),
     }));
+  },
+
+  undoLastPass: async () => {
+    try {
+      const result = await matchApi.undoLastPass();
+      return result;
+    } catch { return null; }
   },
 
   fetchMatches: async () => {
