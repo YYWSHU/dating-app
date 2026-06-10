@@ -79,6 +79,8 @@ model User {
   // P7
   userRatings       UserRating[]  @relation("Rater")
   receivedRatings   UserRating[]  @relation("RatedUser")
+  // Psychology
+  questionnaire     Questionnaire?
 
   @@index([latitude, longitude])
 }
@@ -204,6 +206,63 @@ model UserRating {
   createdAt  DateTime @default(now())
 
   @@unique([raterId, ratedUserId])
+}
+
+// Psychology questionnaire
+model Questionnaire {
+  id          String   @id @default(uuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Attachment style (Bowlby/Ainsworth) - scores for 4 dimensions
+  attachmentSecure   Float @default(0) // 0-1
+  attachmentAnxious  Float @default(0)
+  attachmentAvoidant Float @default(0)
+  attachmentFearful  Float @default(0)
+  attachmentLabel    String? // dominant: secure/anxious/avoidant/fearful
+
+  // Love languages (Gary Chapman) - scores 0-1
+  loveWordsOfAffirmation Float @default(0)
+  loveActsOfService       Float @default(0)
+  loveReceivingGifts      Float @default(0)
+  loveQualityTime         Float @default(0)
+  lovePhysicalTouch       Float @default(0)
+  loveLanguageLabel       String? // dominant
+
+  // Conflict style (Thomas-Kilmann)
+  conflictAvoiding    Float @default(0)
+  conflictCompeting   Float @default(0)
+  conflictCompromising Float @default(0)
+  conflictAccommodating Float @default(0)
+  conflictCollaborating Float @default(0)
+  conflictLabel       String? // dominant
+
+  // Communication style
+  communicationDirect   Float @default(0.5)
+  communicationEmotional Float @default(0.5)
+  communicationLabel    String?
+
+  // Social style
+  socialInitiative  Float @default(0.5) // starts conversations
+  socialGroupSize   Float @default(0.5) // prefers small(0) vs large(1) groups
+  socialPlanning    Float @default(0.5) // spontaneous(0) vs planned(1)
+
+  // Relationship values (ranked)
+  valueAppearance    Float @default(0) // 0-1 normalized
+  valuePersonality   Float @default(0)
+  valueCareer        Float @default(0)
+  valueFamily        Float @default(0)
+  valueSharedInterests Float @default(0)
+  valueEmotional     Float @default(0)
+  valueFinancial     Float @default(0)
+  valueLifestyle     Float @default(0)
+
+  // Life stage & goals
+  lifeGoal           String? // casual/finding_partner/marriage/family/exploring
+  lifePriority       String? // career_first/love_first/balanced/free_spirit
+
+  completedAt        DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 }
 
 // P7: AI conversation starters cache

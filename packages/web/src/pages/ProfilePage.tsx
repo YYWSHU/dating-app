@@ -240,6 +240,11 @@ export function ProfilePage() {
             <Settings size={18} className="text-gray-500" />
             <span>设置</span>
           </button>
+          <button onClick={() => navigate('/questionnaire')}
+            className="w-full flex items-center gap-3 px-4 py-3 bg-white rounded-xl card-shadow text-sm">
+            <Sparkles size={18} className="text-purple-500" />
+            <span>心理问卷</span>
+          </button>
           <button onClick={() => navigate('/admin')}
             className="w-full flex items-center gap-3 px-4 py-3 bg-white rounded-xl card-shadow text-sm">
             <Shield size={18} className="text-purple-500" />

@@ -11,6 +11,7 @@ import { ProfilePage } from './pages/ProfilePage';
 import { SettingsPage } from './pages/SettingsPage';
 import { OtherProfilePage } from './pages/OtherProfilePage';
 import { AdminPage } from './pages/AdminPage';
+import { QuestionnairePage } from './pages/QuestionnairePage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -39,6 +40,7 @@ export default function App() {
         <Route path="/profile/:userId" element={<ProtectedRoute><OtherProfilePage /></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
         <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
+        <Route path="/questionnaire" element={<ProtectedRoute><QuestionnairePage /></ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/discover" replace />} />
       </Routes>
     </BrowserRouter>

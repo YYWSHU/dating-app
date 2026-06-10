@@ -68,12 +68,24 @@ function getTagsScore(tagsA: string[], tagsB: string[]): number {
 }
 
 // P1: Composite match score
-function getMatchScore(me: any, other: any): number {
+async function getMatchScore(me: any, other: any): Promise<number> {
   const mbtiScore = getMbtiScore(me.mbti, other.mbti);
   const bigFiveScore = getBigFiveScore(me.bigFive, other.bigFive);
   const tagsScore = getTagsScore(me.tags || [], other.tags || []);
-  // 20% MBTI + 30% Big Five + 50% Tags (more weight on interests)
-  return mbtiScore * 0.2 + bigFiveScore * 0.3 + tagsScore * 0.5;
+
+  // Psychology questionnaire compatibility
+  let psychScore = 0.5;
+  try {
+    const { getQuestionnaire, getQuestionnaireCompatibility } = await import('../questionnaire/questionnaire.service.js');
+    const [myQ, otherQ] = await Promise.all([
+      getQuestionnaire(me.id),
+      getQuestionnaire(other.id),
+    ]);
+    psychScore = getQuestionnaireCompatibility(myQ, otherQ);
+  } catch { /* questionnaire module not available */ }
+
+  // 15% MBTI + 20% Big5 + 35% Tags + 30% Psychology
+  return mbtiScore * 0.15 + bigFiveScore * 0.20 + tagsScore * 0.35 + psychScore * 0.30;
 }
 
 // ===== Discover =====
@@ -138,13 +150,13 @@ export async function discover(userId: string, limit: number = 20) {
     },
   });
 
-  // P1: Score, sort, and limit
+  // P1: Score (async for questionnaire), sort, and limit
   const now2 = new Date();
-  const scored = users.map((u) => ({
+  const scored = await Promise.all(users.map(async (u) => ({
     ...u,
     age: Math.floor((now2.getTime() - new Date(u.birthDate).getTime()) / (365.25 * 24 * 60 * 60 * 1000)),
-    matchScore: getMatchScore(me, u),
-  }));
+    matchScore: await getMatchScore(me, u),
+  })));
 
   scored.sort((a, b) => b.matchScore - a.matchScore);
   return scored.slice(0, limit);
