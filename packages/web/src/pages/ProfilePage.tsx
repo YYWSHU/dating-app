@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/auth.store';
 import { AppLayout } from '../components/layout/AppLayout';
 import { Avatar } from '../components/ui/Avatar';
@@ -16,6 +17,7 @@ import type { User } from '../types';
 const MBTI_TYPES = ['INTJ','INTP','INFJ','INFP','ENTJ','ENTP','ENFJ','ENFP','ISTJ','ISFJ','ISTP','ISFP','ESTJ','ESFJ','ESTP','ESFP'];
 
 export function ProfilePage() {
+  const navigate = useNavigate();
   const { user, logout } = useAuthStore();
   const [profile, setProfile] = useState<User | null>(null);
   const [editing, setEditing] = useState(false);
@@ -232,6 +234,11 @@ export function ProfilePage() {
             className="w-full flex items-center gap-3 px-4 py-3 bg-white rounded-xl card-shadow text-sm">
             <MapPin size={18} className="text-pink-500" />
             <span>{latitude ? '更新位置' : '共享位置以发现附近的人'}</span>
+          </button>
+          <button onClick={() => navigate('/settings')}
+            className="w-full flex items-center gap-3 px-4 py-3 bg-white rounded-xl card-shadow text-sm">
+            <Settings size={18} className="text-gray-500" />
+            <span>设置</span>
           </button>
         </div>
 

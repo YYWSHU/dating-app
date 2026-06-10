@@ -58,6 +58,8 @@ export interface DiscoverUser {
   age: number;
   latitude?: number;
   longitude?: number;
+  matchScore?: number;
+  mbti?: string | null;
 }
 
 // Auth types
@@ -103,6 +105,7 @@ export interface MatchItem {
     isMine: boolean;
   } | null;
   createdAt: string;
+  matchDate?: string;
 }
 
 // Chat types
