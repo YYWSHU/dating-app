@@ -23,12 +23,13 @@ export function DiscoverPage() {
   const handleLike = async () => {
     if (!currentUser || animating) return;
     setAnimating('like');
-    // Fire API immediately, advance after animation
     const user = currentUser;
-    const isMatch = await likeUser(user.id);
-    setAnimating(null);
+    // Advance immediately, API runs in background
     setCurrentIndex((i) => i + 1);
-    if (isMatch) { setMatchedUser(user); setShowMatch(true); }
+    setAnimating(null);
+    likeUser(user.id).then((isMatch) => {
+      if (isMatch) { setMatchedUser(user); setShowMatch(true); }
+    });
   };
 
   const handleSuperLike = async () => {
@@ -36,19 +37,20 @@ export function DiscoverPage() {
     setAnimating('superlike');
     setSuperLikesLeft((c) => c - 1);
     const user = currentUser;
-    const isMatch = await superLikeUser(user.id);
-    setAnimating(null);
     setCurrentIndex((i) => i + 1);
-    if (isMatch) { setMatchedUser(user); setShowMatch(true); }
+    setAnimating(null);
+    superLikeUser(user.id).then((isMatch) => {
+      if (isMatch) { setMatchedUser(user); setShowMatch(true); }
+    });
   };
 
   const handlePass = async () => {
     if (!currentUser || animating) return;
     setAnimating('pass');
     const user = currentUser;
-    await passUser(user.id);
-    setAnimating(null);
     setCurrentIndex((i) => i + 1);
+    setAnimating(null);
+    passUser(user.id); // fire-and-forget
   };
 
   const handleUndo = async () => {
